@@ -4,9 +4,9 @@ VectorForge is a vector similarity search engine built from first principles.
 It makes the algorithms and tradeoffs behind vector retrieval inspectable, with
 an exact index serving as the correctness baseline for future approximate indexes.
 
-Phases 1 and 2 implement in-memory exact search and IVF approximate search. No
-vector search or clustering library is used; NumPy provides array operations,
-seeded randomness, and partial selection.
+Phases 1 and 2 implement in-memory exact search and IVF approximate search from
+first principles. Phase 3 adds an optional reproducible comparison against FAISS;
+FAISS is never used inside the VectorForge engine.
 
 ## Implemented features
 
@@ -24,6 +24,9 @@ seeded randomness, and partial selection.
 - IVF training, inverted lists, atomic insertion/deletion, configurable probing,
   and a separate versioned persistence schema.
 - Per-query and mean ID-based Recall@k evaluation against exact search.
+- Optional four-engine benchmarks with isolated processes, explicit thread limits,
+  raw latency samples, timed QPS, build-stage timings, RSS snapshots, CSV/JSON
+  reports, and six regenerable Matplotlib charts.
 
 ## Stack and installation
 
@@ -215,6 +218,43 @@ refuse corrupt or incompatible targets; IVF compatibility requires matching
 dimension, metric, and nlist. Exact and IVF archives cannot be interchanged, and
 the original five-field exact schema remains unchanged.
 
+## Benchmarking (Phase 3)
+
+The benchmark compares VectorForge Exact/IVF (float64) against FAISS Flat/IVFFlat
+(float32), using the same independent training, indexed, and query datasets. FAISS,
+Matplotlib, psutil, and threadpoolctl are optional; core installation stays lightweight.
+
+```powershell
+uv sync --locked --extra benchmark
+uv run --extra benchmark python -m vectorforge.benchmarks.cli --help
+uv run --extra benchmark python -m vectorforge.benchmarks.cli --preset quick --output results/quick
+uv run --extra benchmark python -m vectorforge.benchmarks.cli --preset standard --output results/standard
+uv run --extra benchmark python -m vectorforge.benchmarks.cli --preset full --dry-run
+uv run --extra benchmark python examples/benchmark_demo.py
+```
+
+Quick runs 1,000/10,000 vectors at 32/128 dimensions with 50 independent queries
+and three search repetitions. Standard and full workloads are opt-in. All runs
+default to one thread. Missing requested engines produce explicit failed report
+rows and a nonzero CLI exit, rather than a claimed four-engine success.
+
+Each run creates a new folder containing metadata, summary CSV/JSON/text, raw
+latency samples, and charts. Regenerate figures without rerunning indexes:
+
+```powershell
+uv run --extra benchmark python -m vectorforge.benchmarks.cli --plot results/quick/benchmark_YOUR_RUN_ID
+```
+
+Use the actual folder printed by the benchmark. The primary timing includes
+single-query validation, conversion, retrieval, and Python result creation.
+QPS uses an actual timed workload, not inverse mean latency. RSS deltas are
+estimates, not peak or exact index memory. VectorForge IVF's full-probe shortcut
+and FAISS precision/boundary-tie differences are explicitly labeled. See
+[benchmark methodology](docs/benchmarking.md) for supported arguments, schema,
+Windows/WSL compatibility, reproducibility, and interpretation limits.
+The [recorded quick-run results](docs/phase3_results.md) contain actual measurements
+from the implementation environment, validation results, and links to local artifacts.
+
 ## Exact search complexity and limitations
 
 For `N` vectors of dimension `d`, scoring costs **O(Nd)**. Partial selection costs
@@ -234,7 +274,7 @@ See [architecture](docs/architecture.md) for module boundaries and design detail
 See [IVF design](docs/ivf_design.md) for algorithms, numerical policies, and complexity.
 
 IVF may reduce the number of scored vectors but adds routing and training costs;
-no latency or speedup claims have been measured. Unbalanced lists, poor training
+its benefit depends on the measured workload. Unbalanced lists, poor training
 coverage, or duplicate centroid locations can reduce recall or leave lists empty.
 Mutation rebuilds row references and copies arrays. Training uses an `(N, nlist)`
 distance matrix, so large training sets require care. There are no locks, archive
@@ -244,8 +284,8 @@ resource limits, automatic retraining, or support for distribution drift.
 
 1. **Phase 1 — complete:** project foundation and exact search.
 2. **Phase 2 — complete:** k-means and IVF approximate nearest-neighbor search.
-3. **Phase 3:** FAISS comparisons for latency, Recall@k, throughput, memory, and indexing time.
+3. **Phase 3 — complete:** reproducible FAISS comparisons, reports, and charts.
 4. **Phase 4:** FastAPI endpoints and a React/TypeScript benchmarking dashboard.
 5. **Phase 5:** Docker, CI/CD, profiling, expanded documentation, and optional HNSW.
 
-Phases 3–5 are not implemented in this repository.
+Phases 4–5 are not implemented in this repository.

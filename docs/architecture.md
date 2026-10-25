@@ -1,5 +1,28 @@
 # VectorForge architecture
 
+## Phase 3 benchmarking package
+
+`benchmarks/` depends on the engine through adapters; engine modules do not import
+the benchmarking package or its optional native/plotting dependencies.
+
+```text
+config.py / datasets.py   Validated workloads and independent seeded streams
+adapters.py               Common single-query engine interface
+faiss_adapter.py          Optional FAISS mapping, normalization, and ID translation
+runner.py / _worker.py    Exact ground truth and sequential isolated engine processes
+metrics.py                Latency percentiles and timed-workload QPS
+reporting.py              Versioned JSON/CSV/text in collision-safe directories
+plotting.py               Six workload-specific figures from saved summaries
+cli.py                    Presets, custom runs, dry-run, and chart regeneration
+```
+
+The parent shares immutable-on-disk dataset bytes with every worker and verifies
+fingerprints. Workers inherit thread settings before importing numerical libraries,
+time build stages and single-query workloads separately, and record RSS snapshots.
+Recall, file output, and plotting stay outside search timing. Failures remain
+explicit rows. Core search, K-Means, IDs, and NPZ schemas are unchanged.
+See [benchmarking](benchmarking.md) for measurement scopes and precision caveats.
+
 ## Phase 2 extension
 
 The exact index and original five-field NPZ format remain supported. IVF implements
@@ -138,5 +161,6 @@ deletion, including zero queries. Persistence tests cover round trips, IDs, metr
 malformed archives, incompatible overwrites, and simulated write failures.
 
 Both examples are executable integration checks. Pytest and Ruff checks are the
-acceptance gates for Phases 1 and 2. No Phase 3–5 algorithms, APIs, frontend, or
-benchmark infrastructure are included.
+acceptance gates for Phases 1–3. The optional benchmark demo and integration tests
+also check FAISS and generated artifacts. Phase 4–5 APIs, frontend, and deployment
+infrastructure are not included.

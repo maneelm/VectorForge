@@ -1,0 +1,231 @@
+{
+  "benchmark_schema_version": 1,
+  "timestamp_utc": "2026-10-25T02:49:53.182227+00:00",
+  "python_version": "3.12.4",
+  "numpy_version": "2.5.4",
+  "faiss_version": "1.15.1",
+  "operating_system": "Windows-11-10.0.26200-SP0",
+  "cpu": "Intel64 Family 6 Model 186 Stepping 2, GenuineIntel",
+  "logical_cpu_count": 16,
+  "config": {
+    "size": 10000,
+    "dimension": 128,
+    "training_size": 2000,
+    "query_count": 50,
+    "distribution": "normal",
+    "metric": "cosine",
+    "k": 10,
+    "nlist": 16,
+    "nprobes": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "seed": 42,
+    "repetitions": 3,
+    "warmup": 5,
+    "threads": 1,
+    "max_iter": 25,
+    "duplicate_fraction": 0.0,
+    "engines": [
+      "vectorforge_exact",
+      "vectorforge_ivf",
+      "faiss_flat",
+      "faiss_ivf"
+    ],
+    "output_dir": "results/quick"
+  },
+  "dataset_sha256": {
+    "training": "c2f41f6c7e2e58dc57df31b58ec7f60f09e38eb97c1cb6d41532d21bcfa9c46e",
+    "vectors": "c6ed0632969ee0937fd4b36699547310f9ee021e19d4febc25e5e8bc07d7550f",
+    "queries": "c100a7e13a3f8e66d73dfea6c5ba7560e42617b296011e46217f2065b1b481c1",
+    "ids": "a2779f1b5b3c8e5d5a53f2749d433e05a1babed02198109f88b1e4bc3f96f3e6"
+  },
+  "workers": {
+    "faiss_ivf": {
+      "pid": 30980,
+      "threadpools": [
+        {
+          "user_api": "blas",
+          "internal_api": "openblas",
+          "num_threads": 1,
+          "prefix": "libscipy_openblas",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-ed4f167a5330424524f45258e7ca2c8d.dll",
+          "version": "0.3.34.106.0",
+          "threading_layer": "pthreads",
+          "architecture": "Haswell"
+        },
+        {
+          "user_api": "openmp",
+          "internal_api": "openmp",
+          "num_threads": 1,
+          "prefix": "vcomp",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\faiss_cpu.libs\\vcomp140.dll",
+          "version": null
+        },
+        {
+          "user_api": "blas",
+          "internal_api": "openblas",
+          "num_threads": 1,
+          "prefix": "libopenblas",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\faiss_cpu.libs\\libopenblas.dll",
+          "version": "0.3.30",
+          "threading_layer": "pthreads",
+          "architecture": "Haswell"
+        }
+      ],
+      "thread_environment": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "BLIS_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1"
+      },
+      "faiss_omp_threads": 1,
+      "dataset_sha256": {
+        "training": "c2f41f6c7e2e58dc57df31b58ec7f60f09e38eb97c1cb6d41532d21bcfa9c46e",
+        "vectors": "c6ed0632969ee0937fd4b36699547310f9ee021e19d4febc25e5e8bc07d7550f",
+        "queries": "c100a7e13a3f8e66d73dfea6c5ba7560e42617b296011e46217f2065b1b481c1",
+        "ids": "a2779f1b5b3c8e5d5a53f2749d433e05a1babed02198109f88b1e4bc3f96f3e6"
+      },
+      "stderr": ""
+    },
+    "faiss_flat": {
+      "pid": 24940,
+      "threadpools": [
+        {
+          "user_api": "blas",
+          "internal_api": "openblas",
+          "num_threads": 1,
+          "prefix": "libscipy_openblas",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-ed4f167a5330424524f45258e7ca2c8d.dll",
+          "version": "0.3.34.106.0",
+          "threading_layer": "pthreads",
+          "architecture": "Haswell"
+        },
+        {
+          "user_api": "openmp",
+          "internal_api": "openmp",
+          "num_threads": 1,
+          "prefix": "vcomp",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\faiss_cpu.libs\\vcomp140.dll",
+          "version": null
+        },
+        {
+          "user_api": "blas",
+          "internal_api": "openblas",
+          "num_threads": 1,
+          "prefix": "libopenblas",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\faiss_cpu.libs\\libopenblas.dll",
+          "version": "0.3.30",
+          "threading_layer": "pthreads",
+          "architecture": "Haswell"
+        }
+      ],
+      "thread_environment": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "BLIS_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1"
+      },
+      "faiss_omp_threads": 1,
+      "dataset_sha256": {
+        "training": "c2f41f6c7e2e58dc57df31b58ec7f60f09e38eb97c1cb6d41532d21bcfa9c46e",
+        "vectors": "c6ed0632969ee0937fd4b36699547310f9ee021e19d4febc25e5e8bc07d7550f",
+        "queries": "c100a7e13a3f8e66d73dfea6c5ba7560e42617b296011e46217f2065b1b481c1",
+        "ids": "a2779f1b5b3c8e5d5a53f2749d433e05a1babed02198109f88b1e4bc3f96f3e6"
+      },
+      "stderr": ""
+    },
+    "vectorforge_ivf": {
+      "pid": 30932,
+      "threadpools": [
+        {
+          "user_api": "blas",
+          "internal_api": "openblas",
+          "num_threads": 1,
+          "prefix": "libscipy_openblas",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-ed4f167a5330424524f45258e7ca2c8d.dll",
+          "version": "0.3.34.106.0",
+          "threading_layer": "pthreads",
+          "architecture": "Haswell"
+        }
+      ],
+      "thread_environment": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "BLIS_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1"
+      },
+      "faiss_omp_threads": null,
+      "dataset_sha256": {
+        "training": "c2f41f6c7e2e58dc57df31b58ec7f60f09e38eb97c1cb6d41532d21bcfa9c46e",
+        "vectors": "c6ed0632969ee0937fd4b36699547310f9ee021e19d4febc25e5e8bc07d7550f",
+        "queries": "c100a7e13a3f8e66d73dfea6c5ba7560e42617b296011e46217f2065b1b481c1",
+        "ids": "a2779f1b5b3c8e5d5a53f2749d433e05a1babed02198109f88b1e4bc3f96f3e6"
+      },
+      "stderr": ""
+    },
+    "vectorforge_exact": {
+      "pid": 16268,
+      "threadpools": [
+        {
+          "user_api": "blas",
+          "internal_api": "openblas",
+          "num_threads": 1,
+          "prefix": "libscipy_openblas",
+          "filepath": "C:\\Users\\manee\\Desktop\\vectorforge\\.venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-ed4f167a5330424524f45258e7ca2c8d.dll",
+          "version": "0.3.34.106.0",
+          "threading_layer": "pthreads",
+          "architecture": "Haswell"
+        }
+      ],
+      "thread_environment": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "BLIS_NUM_THREADS": "1",
+        "VECLIB_MAXIMUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1"
+      },
+      "faiss_omp_threads": null,
+      "dataset_sha256": {
+        "training": "c2f41f6c7e2e58dc57df31b58ec7f60f09e38eb97c1cb6d41532d21bcfa9c46e",
+        "vectors": "c6ed0632969ee0937fd4b36699547310f9ee021e19d4febc25e5e8bc07d7550f",
+        "queries": "c100a7e13a3f8e66d73dfea6c5ba7560e42617b296011e46217f2065b1b481c1",
+        "ids": "a2779f1b5b3c8e5d5a53f2749d433e05a1babed02198109f88b1e4bc3f96f3e6"
+      },
+      "stderr": ""
+    }
+  },
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+  },
+  "ground_truth": "VectorForge Exact float64; canonical score/ascending-ID ties",
+  "timing_scope": "single-query end-to-end adapter including validation/conversion/results",
+  "qps_scope": "actual repeated single-query workload, including loop/timer overhead",
+  "memory_scope": "fresh worker RSS snapshots, datasets/libraries in baseline; not peak",
+  "warnings": [
+    "FAISS float32 and native boundary ties can differ from float64 ground truth",
+    "VectorForge IVF full probing uses the direct full-dataset ranking path"
+  ],
+  "execution_order": [
+    "faiss_ivf",
+    "faiss_flat",
+    "vectorforge_ivf",
+    "vectorforge_exact"
+  ],
+  "complete": true
+}
