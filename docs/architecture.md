@@ -1,5 +1,23 @@
 # VectorForge architecture
 
+## Phase 4 web application
+
+`backend/` is a checkout-local FastAPI application. Its Pydantic wire models,
+versioned routes, per-index locking service, archive/manifest adapter, report
+reader, and bounded CLI job manager wrap the existing engine and benchmarks.
+Lifespan ownership makes state and subprocess cleanup explicit; imports do not
+launch jobs. The small route/schema grouping refines the proposed layout without
+adding extra persistence layers or a database.
+
+`frontend/` is a Vite React/TypeScript application with five routed pages, a typed
+API client, reusable loading/action state, and a lazily loaded Recharts dashboard.
+It reads live API data and one report workload at a time. Browser IDs use decimal
+strings to preserve signed int64 values. Active indexes and jobs are process-local;
+NPZ archives and benchmark reports remain on disk.
+
+No engine module, ranking policy, NPZ schema, or Phase 3 measurement method was
+changed. See [Phase 4](phase4_webapp.md) for API contracts and operating limits.
+
 ## Phase 3 benchmarking package
 
 `benchmarks/` depends on the engine through adapters; engine modules do not import
@@ -162,5 +180,5 @@ malformed archives, incompatible overwrites, and simulated write failures.
 
 Both examples are executable integration checks. Pytest and Ruff checks are the
 acceptance gates for Phases 1–3. The optional benchmark demo and integration tests
-also check FAISS and generated artifacts. Phase 4–5 APIs, frontend, and deployment
-infrastructure are not included.
+also check FAISS and generated artifacts. API tests and frontend component/browser
+tests cover the web adapter. Phase 5 deployment infrastructure is not included.

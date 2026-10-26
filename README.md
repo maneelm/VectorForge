@@ -280,12 +280,41 @@ Mutation rebuilds row references and copies arrays. Training uses an `(N, nlist)
 distance matrix, so large training sets require care. There are no locks, archive
 resource limits, automatic retraining, or support for distribution drift.
 
-## Roadmap (future work only)
+## Local web application (Phase 4)
+
+The local-first FastAPI backend and React/TypeScript dashboard support index
+management, IVF training, vector insertion/search/deletion, safe saved archives,
+six interactive benchmark charts, and bounded background benchmark jobs.
+
+```powershell
+uv sync --locked --extra web --extra benchmark
+uv run --extra web --extra benchmark uvicorn backend.main:app --host 127.0.0.1 --port 8000
+```
+
+In another terminal:
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+Open <http://127.0.0.1:5173>; API documentation is at
+<http://127.0.0.1:8000/docs>. Use one backend worker: active indexes are in memory,
+while explicitly saved archives and benchmark reports survive restarts. Request
+bodies use integer or quoted decimal vector IDs; match IDs are strings to preserve
+int64 precision in browsers. The web application adds locks and resource limits
+around the unchanged engine. It does not change NPZ formats or benchmark methodology.
+
+See [web application documentation](docs/phase4_webapp.md) for endpoints, examples,
+configuration, persistence, limits, tests, browser smoke workflows, and troubleshooting.
+
+## Roadmap
 
 1. **Phase 1 — complete:** project foundation and exact search.
 2. **Phase 2 — complete:** k-means and IVF approximate nearest-neighbor search.
 3. **Phase 3 — complete:** reproducible FAISS comparisons, reports, and charts.
-4. **Phase 4:** FastAPI endpoints and a React/TypeScript benchmarking dashboard.
+4. **Phase 4 — complete:** local FastAPI endpoints and a React/TypeScript benchmarking dashboard.
 5. **Phase 5:** Docker, CI/CD, profiling, expanded documentation, and optional HNSW.
 
-Phases 4–5 are not implemented in this repository.
+Phase 5 is not implemented in this repository.
