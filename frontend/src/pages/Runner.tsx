@@ -107,12 +107,23 @@ export function Runner() {
             </form>
             {health.data && !health.data.can_run_benchmarks && (
               <ErrorBox
-                message={`Missing optional dependencies: ${health.data.missing_dependencies.join(", ")}. Install with: uv sync --locked --extra web --extra benchmark`}
+                message={
+                  health.data.benchmark_enabled === false
+                    ? "Benchmark execution is disabled by the server."
+                    : `Missing optional dependencies: ${health.data.missing_dependencies.join(", ")}. Install with: uv sync --locked --extra web --extra benchmark`
+                }
               />
             )}
             <p className="hint">
-              One running job and one queued job. Each job has a 180-second
-              deadline. Avoid competing CPU work while measuring.
+              {health.data?.benchmark_limits && (
+                <>
+                  At most {health.data.benchmark_limits.max_pending_jobs}{" "}
+                  running/queued jobs in total; one runs at a time. Each job has
+                  a {health.data.benchmark_limits.job_timeout_seconds}-second
+                  deadline.{" "}
+                </>
+              )}
+              Avoid competing CPU work while measuring.
             </p>
           </div>
         </section>

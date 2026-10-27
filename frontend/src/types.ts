@@ -85,6 +85,8 @@ export interface Health {
   status: string;
   version: string;
   can_run_benchmarks: boolean;
+  benchmark_enabled: boolean;
+  benchmark_limits: { max_pending_jobs: number; job_timeout_seconds: number };
   missing_dependencies: string[];
   benchmark_preset: {
     size: number;

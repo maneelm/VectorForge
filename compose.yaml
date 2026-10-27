@@ -1,0 +1,78 @@
+name: vectorforge
+services:
+  backend:
+    build:
+      context: .
+      args:
+        API_PORT: ${VECTORFORGE_API_PORT:-8000}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: 1g
+    stop_grace_period: 30s
+    environment:
+      VECTORFORGE_ENV: production
+      VECTORFORGE_API_HOST: 0.0.0.0
+      VECTORFORGE_API_PORT: ${VECTORFORGE_API_PORT:-8000}
+      VECTORFORGE_ALLOWED_HOSTS: ${VECTORFORGE_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      VECTORFORGE_CORS_ORIGINS: ${VECTORFORGE_CORS_ORIGINS:-}
+      VECTORFORGE_ENABLE_DOCS: ${VECTORFORGE_ENABLE_DOCS:-true}
+      VECTORFORGE_ENABLE_BENCHMARKS: ${VECTORFORGE_ENABLE_BENCHMARKS:-true}
+      VECTORFORGE_MAX_INDEXES: ${VECTORFORGE_MAX_INDEXES:-16}
+      VECTORFORGE_MAX_PENDING_JOBS: ${VECTORFORGE_MAX_PENDING_JOBS:-2}
+      VECTORFORGE_JOB_TIMEOUT: ${VECTORFORGE_JOB_TIMEOUT:-180}
+      VECTORFORGE_DATA_DIR: /var/lib/vectorforge/data
+      VECTORFORGE_RESULTS_DIR: /var/lib/vectorforge/results
+    volumes:
+      - index_data:/var/lib/vectorforge/data
+      - benchmark_reports:/var/lib/vectorforge/results
+    tmpfs:
+      - /tmp:size=268435456,mode=1777
+    networks: [internal]
+    healthcheck:
+      test: [CMD, python, -m, backend.healthcheck]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 4
+  frontend:
+    build:
+      context: ./frontend
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 256m
+    stop_grace_period: 15s
+    environment:
+      VECTORFORGE_API_PORT: ${VECTORFORGE_API_PORT:-8000}
+      VECTORFORGE_ACCESS_MODE: local
+      VECTORFORGE_BIND_ADDRESS: ${VECTORFORGE_BIND_ADDRESS:-127.0.0.1}
+    ports:
+      - "${VECTORFORGE_BIND_ADDRESS:-127.0.0.1}:${VECTORFORGE_FRONTEND_PORT:-8080}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    tmpfs:
+      - /tmp:size=33554432,mode=1777
+      - /etc/nginx/conf.d:size=1048576,uid=101,gid=101,mode=0755
+    networks: [internal, edge]
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 4
+volumes:
+  index_data:
+  benchmark_reports:
+networks:
+  internal:
+    internal: true
+  edge:
+    driver: bridge

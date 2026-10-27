@@ -56,8 +56,10 @@ class Health(BaseModel):
     status: str = "ok"
     version: str = "0.1.0"
     can_run_benchmarks: bool
+    benchmark_enabled: bool = True
     missing_dependencies: list[str]
     benchmark_preset: dict
+    benchmark_limits: dict
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -65,6 +67,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app):
+        if settings.environment == "production":
+            settings.prepare_storage()
         app.state.indexes = IndexManager(settings)
         app.state.persistence = IndexPersistence(settings, app.state.indexes)
         app.state.reports = ReportService(settings)
@@ -72,7 +76,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
         app.state.jobs.close()
 
-    app = FastAPI(title="VectorForge API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title="VectorForge API",
+        version="0.1.0",
+        lifespan=lifespan,
+        docs_url="/docs" if settings.enable_docs else None,
+        openapi_url="/openapi.json" if settings.enable_docs else None,
+        redoc_url=None,
+    )
+    app.state.settings = settings
     app.add_exception_handler(AppError, app_error)
     app.add_exception_handler(RequestValidationError, validation_error)
 
@@ -89,9 +101,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     app.add_middleware(BodyLimit, maximum=settings.request_bytes)
-    app.add_middleware(
-        TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "testserver"]
-    )
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.origins),
@@ -105,7 +115,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health():
         missing = missing_dependencies()
         return Health(
-            can_run_benchmarks=not missing,
+            can_run_benchmarks=settings.enable_benchmarks and not missing,
+            benchmark_enabled=settings.enable_benchmarks,
+            benchmark_limits={
+                "max_pending_jobs": settings.max_pending_jobs,
+                "job_timeout_seconds": settings.job_timeout,
+            },
             missing_dependencies=missing,
             benchmark_preset={
                 "size": 1000,

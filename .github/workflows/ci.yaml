@@ -1,0 +1,103 @@
+name: VectorForge CI
+on: [push, pull_request]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.11.28'
+          enable-cache: true
+      - run: uv sync --locked --extra web --extra benchmark
+      - run: uv run --no-sync python -c "import faiss; print(faiss.__version__)"
+      - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync ruff format --check .
+      - run: uv run --no-sync pytest -v
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: '0.11.28'
+          enable-cache: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: uv sync --locked --extra web --extra benchmark
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run typecheck && npm run build && npm test
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      - run: npm run test:e2e
+        working-directory: frontend
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+          CI: 'true'
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: browser-failure-artifacts
+          path: frontend/test-results/
+          retention-days: 7
+  docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - run: docker compose config --quiet
+      - run: docker compose build
+      - run: docker compose up -d --wait --wait-timeout 120
+      - name: Verify non-root runtime identities
+        run: |
+          docker compose exec -T backend python -c "import os; assert os.getuid() == 10001"
+          test "$(docker compose exec -T frontend id -u)" = "101"
+      - run: python scripts/container_smoke.py before
+      - run: docker compose up -d --force-recreate --wait --wait-timeout 120
+      - run: python scripts/container_smoke.py after
+      - name: Configure ephemeral test-only authentication
+        shell: bash
+        run: |
+          sudo apt-get update && sudo apt-get install -y apache2-utils
+          mkdir -p .vectorforge
+          password=$(openssl rand -hex 24)
+          echo "::add-mask::$password"
+          printf '%s\n' "$password" | htpasswd -iBc .vectorforge/ci.htpasswd ci-test
+          chmod 644 .vectorforge/ci.htpasswd
+          echo "VECTORFORGE_HTPASSWD_FILE=$PWD/.vectorforge/ci.htpasswd" >> "$GITHUB_ENV"
+          echo "VECTORFORGE_SMOKE_USER=ci-test" >> "$GITHUB_ENV"
+          echo "VECTORFORGE_SMOKE_PASSWORD=$password" >> "$GITHUB_ENV"
+      - run: docker compose -f compose.yaml -f compose.auth.yaml config --quiet
+      - run: docker compose -f compose.yaml -f compose.auth.yaml up -d --no-deps --force-recreate --wait --wait-timeout 60 frontend
+      - run: python scripts/container_smoke.py auth
+      - if: always()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down

@@ -8,7 +8,9 @@ export default defineConfig({
   expect: { timeout: 15000 },
   use: {
     baseURL: "http://127.0.0.1:5173",
-    channel: process.env.PLAYWRIGHT_CHANNEL || "msedge",
+    channel:
+      process.env.PLAYWRIGHT_CHANNEL ||
+      (process.platform === "win32" ? "msedge" : "chromium"),
     headless: true,
     trace: "retain-on-failure",
   },

@@ -19,3 +19,6 @@ frontend/playwright-report/
 *.tsbuildinfo
 *.tmp
 *.log
+secrets/
+.secrets/
+*.htpasswd

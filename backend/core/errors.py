@@ -11,8 +11,14 @@ class AppError(Exception):
 
 
 async def app_error(request: Request, exc: AppError) -> JSONResponse:
+    message = exc.message
+    if request.app.state.settings.environment == "production":
+        message = {
+            "invalid_report": "Benchmark report is invalid or inaccessible.",
+            "invalid_archive": "Saved archive is invalid or incompatible.",
+        }.get(exc.code, message)
     return JSONResponse(
-        status_code=exc.status, content={"error": {"code": exc.code, "message": exc.message}}
+        status_code=exc.status, content={"error": {"code": exc.code, "message": message}}
     )
 
 

@@ -1,0 +1,10 @@
+# Requires an operator-created password file; no credentials are provided.
+services:
+  frontend:
+    environment:
+      VECTORFORGE_ACCESS_MODE: authenticated
+    secrets:
+      - vectorforge_htpasswd
+secrets:
+  vectorforge_htpasswd:
+    file: ${VECTORFORGE_HTPASSWD_FILE:?Set VECTORFORGE_HTPASSWD_FILE to your htpasswd file}

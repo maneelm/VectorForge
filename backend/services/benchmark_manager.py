@@ -1,6 +1,7 @@
 """One bounded CLI job at a time; no process starts at import or construction."""
 
 import importlib.util
+import logging
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +13,8 @@ from backend.core.config import ROOT, Settings, confined
 from backend.core.errors import AppError
 from backend.schemas import JobInfo, QuickRun
 from backend.services.reports import ReportService
+
+logger = logging.getLogger(__name__)
 
 
 def missing_dependencies() -> list[str]:
@@ -49,17 +52,29 @@ class BenchmarkManager:
         self.process = None
         self.closed = False
 
+    def public_job(self, job: JobInfo) -> JobInfo:
+        result = job.model_copy(deep=True)
+        if self.settings.environment == "production":
+            result.log = ""
+            if result.error:
+                result.error = "Benchmark failed. Inspect the server logs using the job ID."
+        return result
+
     def list(self) -> list[JobInfo]:
         with self.lock:
-            return [job.model_copy(deep=True) for job in reversed(list(self.jobs.values()))]
+            return [self.public_job(job) for job in reversed(list(self.jobs.values()))]
 
     def get(self, identifier: UUID) -> JobInfo:
         with self.lock:
             if identifier not in self.jobs:
                 raise AppError(404, "job_not_found", "Benchmark job not found.")
-            return self.jobs[identifier].model_copy(deep=True)
+            return self.public_job(self.jobs[identifier])
 
     def submit(self, request: QuickRun) -> JobInfo:
+        if not self.settings.enable_benchmarks:
+            raise AppError(
+                503, "benchmark_disabled", "Benchmark execution is disabled by the server."
+            )
         missing = missing_dependencies()
         if missing:
             raise AppError(
@@ -83,11 +98,10 @@ class BenchmarkManager:
         with self.lock:
             if (
                 self.closed
-                or sum(j.status in ("queued", "running") for j in self.jobs.values()) >= 2
+                or sum(j.status in ("queued", "running") for j in self.jobs.values())
+                >= self.settings.max_pending_jobs
             ):
-                raise AppError(
-                    409, "benchmark_busy", "One active and one queued benchmark are allowed."
-                )
+                raise AppError(409, "benchmark_busy", "Benchmark running/queued capacity reached.")
             if len(self.jobs) >= 50:
                 oldest = next(
                     (i for i, j in self.jobs.items() if j.status in ("completed", "failed")), None
@@ -101,7 +115,7 @@ class BenchmarkManager:
             job = JobInfo(id=uuid4(), status="queued", created_at=datetime.now(UTC).isoformat())
             self.jobs[job.id] = job
             self.executor.submit(self.execute, job.id, request)
-            return job.model_copy(deep=True)
+            return self.public_job(job)
 
     def execute(self, identifier: UUID, request: QuickRun):
         process = None
@@ -170,9 +184,10 @@ class BenchmarkManager:
                 self.jobs[identifier].run_ids = found
                 self.jobs[identifier].status = "completed"
         except Exception as exc:
+            logger.error("Benchmark job %s failed: %s", identifier, exc)
             if process is not None and process.poll() is None:
-                stop_tree(process)
                 try:
+                    stop_tree(process)
                     process.communicate(timeout=5)
                 except (subprocess.TimeoutExpired, OSError):
                     pass
@@ -195,6 +210,9 @@ class BenchmarkManager:
                 if job.status in ("queued", "running"):
                     job.status, job.error = "failed", "Application shut down."
         if process is not None and process.poll() is None:
-            stop_tree(process)
+            try:
+                stop_tree(process)
+            except OSError:
+                logger.exception("Could not terminate benchmark process")
         if self.executor is not None:
             self.executor.shutdown(wait=True, cancel_futures=True)

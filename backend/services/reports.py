@@ -121,6 +121,15 @@ class ReportService:
                 "config",
             )
         }
+        if self.settings.environment == "production":
+            public["config"] = {
+                key: value for key, value in public["config"].items() if key != "output_dir"
+            }
+            public["warnings"] = (
+                ["Review the saved report locally for environment warnings."]
+                if public["warnings"]
+                else []
+            )
         return RunResults(run=info, metadata=public, results=rows)
 
     def list(self) -> RunList:
@@ -130,6 +139,8 @@ class ReportService:
                 runs.append(self.read(identifier, location).run)
             except (ValueError, OSError, KeyError, TypeError, AppError) as exc:
                 error = exc.message if isinstance(exc, AppError) else str(exc)
+                if self.settings.environment == "production":
+                    error = "Report is invalid, inaccessible, or exceeds configured limits."
                 issues.append({"id": identifier, "name": location[2].name, "error": error[:300]})
         return RunList(runs=sorted(runs, key=lambda r: r.timestamp, reverse=True), issues=issues)
 

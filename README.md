@@ -309,12 +309,36 @@ around the unchanged engine. It does not change NPZ formats or benchmark methodo
 See [web application documentation](docs/phase4_webapp.md) for endpoints, examples,
 configuration, persistence, limits, tests, browser smoke workflows, and troubleshooting.
 
+## Docker and deployment readiness (Phase 5)
+
+With Docker Engine/Compose or Docker Desktop running Linux containers:
+
+```sh
+docker compose up --build -d
+docker compose ps
+docker compose logs -f
+docker compose down
+```
+
+Open `http://127.0.0.1:8080`. The non-root backend runs one Uvicorn worker behind
+an unprivileged Nginx static frontend. Named volumes retain explicitly saved
+indexes and generated benchmark reports; active indexes remain in memory until
+saved. Normal `down` keeps volumes. `.env.example` documents overrides.
+
+Default access is localhost-only. Public hosting requires the authenticated
+proxy override, your own password file, HTTPS, and explicit host configuration;
+no provider, credentials, image publication, or deployment is configured.
+See [Phase 5 deployment](docs/phase5_deployment.md) for architecture, backups,
+security, CI, environment settings, and the container persistence smoke workflow.
+Docker runtime verification remains pending in environments without Docker.
+
 ## Roadmap
 
 1. **Phase 1 — complete:** project foundation and exact search.
 2. **Phase 2 — complete:** k-means and IVF approximate nearest-neighbor search.
 3. **Phase 3 — complete:** reproducible FAISS comparisons, reports, and charts.
 4. **Phase 4 — complete:** local FastAPI endpoints and a React/TypeScript benchmarking dashboard.
-5. **Phase 5:** Docker, CI/CD, profiling, expanded documentation, and optional HNSW.
+5. **Phase 5:** Docker Compose packaging, CI, deployment configuration, and operating documentation.
 
-Phase 5 is not implemented in this repository.
+Phase 5 packaging is implemented; Docker runtime and hosted-CI verification require
+a Docker-capable host and an approved push. Optional HNSW/profiling work is not included.

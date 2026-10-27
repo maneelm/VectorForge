@@ -1,5 +1,17 @@
 # VectorForge architecture
 
+## Phase 5 runtime packaging
+
+Separate backend and frontend multi-stage Dockerfiles keep runtime images focused.
+Compose runs a single non-root FastAPI worker with durable archive/report volumes
+on a private internal network, and an unprivileged Nginx frontend on an edge bridge
+with loopback-only host publication. An authenticated proxy override requires an
+operator-provided secret for public-hosting preparation. Production environment
+validation and API error redaction wrap existing behavior; algorithms and archive
+formats are unchanged. CI builds/tests without publishing or deploying.
+See [deployment](phase5_deployment.md) for the diagram, smoke workflow, persistence,
+threat model, and Docker verification limitations.
+
 ## Phase 4 web application
 
 `backend/` is a checkout-local FastAPI application. Its Pydantic wire models,

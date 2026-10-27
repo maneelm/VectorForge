@@ -1,0 +1,27 @@
+#!/bin/sh
+# Sourced before the image's envsubst hook so its exports reach that hook.
+set -e
+VECTORFORGE_API_PORT=${VECTORFORGE_API_PORT:-8000}
+case "${VECTORFORGE_API_PORT:-8000}" in
+    ''|*[!0-9]*) echo 'Invalid API port' >&2; exit 1 ;;
+esac
+[ "$VECTORFORGE_API_PORT" -ge 1 ] && [ "$VECTORFORGE_API_PORT" -le 65535 ] || exit 1
+case "${VECTORFORGE_ACCESS_MODE:-local}" in
+    local)
+        [ "${VECTORFORGE_BIND_ADDRESS:-127.0.0.1}" = '127.0.0.1' ] || {
+            echo 'Local access mode requires loopback binding. Use the authenticated override.' >&2
+            exit 1
+        }
+        VECTORFORGE_AUTH_REALM=off
+        ;;
+    authenticated)
+        [ -r /run/secrets/vectorforge_htpasswd ] && [ -s /run/secrets/vectorforge_htpasswd ] || {
+            echo 'Authenticated mode requires a readable, nonempty htpasswd secret.' >&2
+            exit 1
+        }
+        VECTORFORGE_AUTH_REALM=VectorForge
+        ;;
+    *) echo 'Access mode must be local or authenticated.' >&2; exit 1 ;;
+esac
+export VECTORFORGE_AUTH_REALM
+export VECTORFORGE_API_PORT
