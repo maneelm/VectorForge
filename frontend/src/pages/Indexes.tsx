@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Database, Plus, Save, Trash2, ArrowUpRight } from "lucide-react";
 import { request } from "../api/client";
 import { useResource } from "../hooks/useResource";
-import type { IndexInfo, Metric, SavedIndex } from "../types";
+import type { IndexInfo, SavedIndex } from "../types";
 import {
   Badge,
   Empty,
@@ -27,16 +27,12 @@ export function Indexes() {
   };
   return (
     <>
-      <div className="eyebrow">COLLECTIONS / 02</div>
       <div className="page-title">
         <div>
           <h1>Index manager</h1>
-          <p>
-            A stable home for your vectors. Exact by default, approximate by
-            design.
-          </p>
+          <p>Create, train, and save Exact or IVF indexes.</p>
         </div>
-        <Badge>{indexes.data?.length ?? "—"} ACTIVE</Badge>
+        <Badge>{indexes.data?.length ?? "—"} active</Badge>
       </div>
       <Feedback action={action} />
       <ErrorBox message={indexes.error || saved.error} />
@@ -116,6 +112,13 @@ export function Indexes() {
             </Field>
             {type === "ivf" && (
               <>
+                <div className="form-section">
+                  <h3>IVF configuration</h3>
+                  <p className="hint">
+                    nlist sets the number of clusters. nprobe controls how many
+                    are searched and must not exceed nlist.
+                  </p>
+                </div>
                 <div className="form-row">
                   <Field label="Clusters (nlist)">
                     <input
@@ -177,17 +180,19 @@ export function Indexes() {
             )}
             <button className="button primary" disabled={action.busy}>
               <Plus size={16} />
-              Create index
+              {action.busy ? "Working…" : "Create index"}
             </button>
           </form>
         </section>
         <section className="panel">
           <div className="panel-heading">
-            <h2>Your indexes</h2>
+            <h2>Active indexes</h2>
             <Database size={18} />
           </div>
           {indexes.loading ? (
             <Loading />
+          ) : indexes.error ? (
+            <Empty>Active indexes could not be loaded.</Empty>
           ) : !indexes.data?.length ? (
             <Empty>No active indexes. Create one to begin.</Empty>
           ) : (
@@ -198,17 +203,35 @@ export function Indexes() {
               >
                 <button
                   className="index-select"
+                  aria-pressed={selected === i.id}
                   onClick={() => setSelected(i.id)}
                 >
                   <strong>{i.name}</strong>
-                  <Badge good={i.is_trained}>
+                  <Badge tone={i.is_trained ? "success" : "warning"}>
                     {i.type} / {i.status}
                   </Badge>
-                  <small>
-                    {i.dimension}d · {i.metric} · {i.size.toLocaleString()}{" "}
-                    vectors
-                  </small>
                 </button>
+                <dl
+                  className="index-metadata"
+                  aria-label={`${i.name} properties`}
+                >
+                  <div>
+                    <dt>Type</dt>
+                    <dd>{i.type.toUpperCase()}</dd>
+                  </div>
+                  <div>
+                    <dt>Metric</dt>
+                    <dd>{i.metric}</dd>
+                  </div>
+                  <div>
+                    <dt>Dimensions</dt>
+                    <dd>{i.dimension}</dd>
+                  </div>
+                  <div>
+                    <dt>Vectors</dt>
+                    <dd>{i.size.toLocaleString()}</dd>
+                  </div>
+                </dl>
                 <div className="card-actions">
                   <Link className="text-button" to={`/workspace?index=${i.id}`}>
                     <ArrowUpRight size={15} />
@@ -255,7 +278,9 @@ export function Indexes() {
         <section className="panel detail">
           <div className="panel-heading">
             <h2>{current.name} / details</h2>
-            <Badge good={current.is_trained}>{current.status}</Badge>
+            <Badge tone={current.is_trained ? "success" : "warning"}>
+              {current.status}
+            </Badge>
           </div>
           <p className="mono muted">{current.id}</p>
           <pre className="config">
@@ -281,6 +306,7 @@ export function Indexes() {
                   value={training}
                   onChange={(e) => setTraining(e.target.value)}
                   placeholder="[[1,0,0],[0,1,0],[-1,0,0],[0,-1,0]]"
+                  spellCheck={false}
                   required
                 />
               </Field>
@@ -334,13 +360,17 @@ export function Indexes() {
       <section className="panel detail">
         <div className="panel-heading">
           <h2>Saved archives</h2>
-          <Badge>ON DISK</Badge>
+          <span className="muted">Persistent storage</span>
         </div>
         <p className="hint">
           Loading creates a new active index. Archives survive application
           restarts.
         </p>
-        {!saved.data?.length ? (
+        {saved.loading ? (
+          <Loading />
+        ) : saved.error ? (
+          <Empty>Saved archives could not be loaded.</Empty>
+        ) : !saved.data?.length ? (
           <Empty>No saved archives yet.</Empty>
         ) : (
           saved.data.map((s) => (

@@ -286,6 +286,12 @@ The local-first FastAPI backend and React/TypeScript dashboard support index
 management, IVF training, vector insertion/search/deletion, safe saved archives,
 six interactive benchmark charts, and bounded background benchmark jobs.
 
+Navigation groups index management and the vector workspace under **Workspace**,
+and benchmark analysis and execution under **Performance**. The overview shows
+live index/vector counts and available reports. Charts use fixed engine colors,
+explicit units, and probe labels; scrollable tables retain precise vector IDs.
+See [UI refinement notes](docs/phase6_ui.md) for design decisions and validation.
+
 ```powershell
 uv sync --locked --extra web --extra benchmark
 uv run --extra web --extra benchmark uvicorn backend.main:app --host 127.0.0.1 --port 8000

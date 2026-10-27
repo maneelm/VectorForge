@@ -21,7 +21,7 @@ export async function request<T>(
     if (error instanceof DOMException && error.name === "AbortError")
       throw error;
     throw new Error(
-      "Cannot reach the API. Start the backend on port 8000 and try again.",
+      "Cannot reach the API. Start the backend or check the server connection, then try again.",
     );
   }
   if (response.status === 204) return undefined as T;

@@ -1,13 +1,18 @@
-import { BrowserRouter, NavLink, Route, Routes, Link } from "react-router-dom";
+import {
+  BrowserRouter,
+  NavLink,
+  Route,
+  Routes,
+  Link,
+  useLocation,
+} from "react-router-dom";
 import {
   Activity,
-  ArrowUpRight,
   BarChart3,
   Boxes,
   Database,
   FlaskConical,
   Layers3,
-  Terminal,
 } from "lucide-react";
 import { useResource } from "./hooks/useResource";
 import type { Health } from "./types";
@@ -31,46 +36,66 @@ const nav = [
 ] as const;
 export function Shell() {
   const health = useResource<Health>("/health");
+  const location = useLocation();
+  const pageName =
+    nav.find(([path]) => path === location.pathname)?.[1] ?? "Page not found";
+  const connection = health.data
+    ? "API connected"
+    : health.error
+      ? "API unavailable"
+      : "Connecting to API";
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <aside>
         <Link to="/" className="brand">
           <span className="brand-mark">
             <Layers3 size={25} />
           </span>
-          VectorForge<span className="version">LAB</span>
+          VectorForge
         </Link>
-        <div className="nav-label">WORKSPACE</div>
-        <nav>
+        <nav aria-label="Main navigation">
           {nav.map(([to, label, Icon]) => (
-            <NavLink to={to} end={to === "/"} key={to}>
-              <Icon size={18} />
-              {label}
-              <span className="nav-arrow">↗</span>
-            </NavLink>
+            <div key={to}>
+              {(to === "/" || to === "/benchmarks") && (
+                <div className="nav-label">
+                  {to === "/" ? "Workspace" : "Performance"}
+                </div>
+              )}
+              <NavLink to={to} end={to === "/"}>
+                <Icon size={17} aria-hidden="true" />
+                {label}
+              </NavLink>
+            </div>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="status-dot" />
-          Local engine
-          <span className="mono">{health.data ? "CONNECTED" : "OFFLINE"}</span>
-          <p>Exact algorithms. Measurable tradeoffs.</p>
-          <Link to="/benchmarks">
-            Explore the evidence <ArrowUpRight size={14} />
-          </Link>
+          <span
+            className={`connection ${health.data ? "online" : health.error ? "offline" : ""}`}
+          >
+            <span className="status-dot" />
+            {connection}
+          </span>
+          {health.data && <span className="muted">v{health.data.version}</span>}
         </div>
       </aside>
       <div className="main">
         <header>
           <span>
-            <Terminal size={16} /> VectorForge <span className="muted">/</span>{" "}
-            search laboratory
+            <span className="muted">VectorForge</span>
+            <span className="muted">/</span>
+            {pageName}
           </span>
-          <span className="header-tag">
-            LOCAL WORKSPACE <i className={health.data ? "online" : ""} />
-          </span>
+          {location.pathname !== "/workspace" && (
+            <Link className="text-button" to="/workspace">
+              <Boxes size={14} />
+              Vector workspace
+            </Link>
+          )}
         </header>
-        <main>
+        <main id="main-content" tabIndex={-1} key={location.pathname}>
           <Suspense fallback={<Loading />}>
             <Routes>
               <Route path="/" element={<Overview />} />
@@ -90,10 +115,6 @@ export function Shell() {
             </Routes>
           </Suspense>
         </main>
-        <footer>
-          VECTORFORGE{" "}
-          <span>Built from first principles. Evaluated with evidence.</span>
-        </footer>
       </div>
     </div>
   );

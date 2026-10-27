@@ -1,21 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { useResource } from "../hooks/useResource";
-import type { Result, RunList, RunResults } from "../types";
+import type { RunList, RunResults } from "../types";
 import {
   Badge,
   Empty,
@@ -24,216 +10,9 @@ import {
   Loading,
   engineName,
 } from "../components/UI";
-const colors = ["#a9e787", "#70b6ff", "#d2a4f4", "#f6c775"];
-const tick = { fill: "#94a3b8", fontSize: 10 };
-const tooltipStyle = {
-  background: "#161e27",
-  border: "1px solid #354354",
-  borderRadius: 8,
-  color: "#f3f6fa",
-};
-function Chart({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="panel chart-panel">
-      <h2>{title}</h2>
-      <div className="chart">{children}</div>
-    </section>
-  );
-}
-export function BenchmarkCharts({ rows }: { rows: Result[] }) {
-  const good = rows.filter((r) => r.status === "ok"),
-    data = good.map((r) => ({
-      ...r,
-      label:
-        engineName(r.engine) +
-        (r.nprobe
-          ? ` / ${r.nprobe}${r.full_probe_direct_path ? "*" : ""}`
-          : ""),
-    })),
-    build = Object.values(
-      Object.fromEntries(
-        data.map((r) => [
-          r.engine,
-          {
-            ...r,
-            label: engineName(r.engine),
-            baseline: (r.rss_baseline_bytes ?? 0) / 2 ** 20,
-            retained:
-              r.retained_rss_delta_bytes === null
-                ? null
-                : r.retained_rss_delta_bytes / 2 ** 20,
-          },
-        ]),
-      ),
-    );
-  const engines = [...new Set(good.map((r) => r.engine))];
-  const bars = (field: string, label: string, source = data) => (
-    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-      <BarChart
-        data={source}
-        margin={{ top: 8, right: 12, bottom: 35, left: 0 }}
-      >
-        <CartesianGrid stroke="#26313e" vertical={false} />
-        <XAxis
-          dataKey="label"
-          tick={tick}
-          interval={0}
-          angle={-24}
-          textAnchor="end"
-          height={65}
-        />
-        <YAxis tick={tick} />
-        <Tooltip contentStyle={tooltipStyle} />
-        <Legend />
-        <Bar
-          dataKey={field}
-          name={label}
-          fill="#a9e787"
-          radius={[4, 4, 0, 0]}
-        />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-  return (
-    <div className="charts-grid">
-      <Chart title="Search latency · mean ms">
-        {bars("latency_mean_ms", "Mean latency (ms)")}
-      </Chart>
-      <Chart title="Throughput · queries / second">
-        {bars("qps", "Measured QPS")}
-      </Chart>
-      <Chart title="Recall versus latency">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <ScatterChart margin={{ bottom: 20, left: 5, right: 20 }}>
-            <CartesianGrid stroke="#26313e" />
-            <XAxis
-              type="number"
-              dataKey="latency_mean_ms"
-              tick={tick}
-              name="Mean latency"
-              unit=" ms"
-            />
-            <YAxis
-              type="number"
-              dataKey="recall_at_k"
-              domain={[0, 1]}
-              tick={tick}
-              name="Recall@k"
-            />
-            <Tooltip
-              contentStyle={tooltipStyle}
-              cursor={{ strokeDasharray: "3 3" }}
-            />
-            <Legend />
-            {engines.map((e, i) => (
-              <Scatter
-                key={e}
-                name={engineName(e)}
-                data={data.filter((r) => r.engine === e)}
-                fill={colors[i % 4]}
-              />
-            ))}
-          </ScatterChart>
-        </ResponsiveContainer>
-      </Chart>
-      <Chart title="Recall versus nprobe">
-        {data.some((row) => row.nprobe !== null) ? (
-          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-            <LineChart margin={{ bottom: 20, left: 5, right: 20 }}>
-              <CartesianGrid stroke="#26313e" />
-              <XAxis
-                type="number"
-                dataKey="nprobe"
-                allowDuplicatedCategory={false}
-                tick={tick}
-                name="nprobe"
-              />
-              <YAxis domain={[0, 1]} tick={tick} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend />
-              {engines
-                .filter((e) => e.endsWith("ivf"))
-                .map((e, i) => (
-                  <Line
-                    key={e}
-                    data={data
-                      .filter((r) => r.engine === e)
-                      .sort((a, b) => a.nprobe! - b.nprobe!)}
-                    dataKey="recall_at_k"
-                    name={engineName(e)}
-                    stroke={colors[i]}
-                    strokeWidth={2}
-                    connectNulls={false}
-                  />
-                ))}
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <Empty>Probe comparisons apply to IVF indexes.</Empty>
-        )}
-      </Chart>
-      <Chart title="Index build · milliseconds">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <BarChart data={build} margin={{ bottom: 30 }}>
-            <CartesianGrid stroke="#26313e" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={tick}
-              angle={-20}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis tick={tick} />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Legend />
-            {[
-              ["construction_ms", "Construction"],
-              ["training_ms", "IVF training"],
-              ["insertion_ms", "Insertion"],
-            ].map(([field, label], i) => (
-              <Bar
-                key={field}
-                dataKey={field}
-                stackId="build"
-                name={label}
-                fill={colors[i]}
-              />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
-      </Chart>
-      <Chart title="Memory · process RSS MiB">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-          <BarChart data={build} margin={{ bottom: 30 }}>
-            <CartesianGrid stroke="#26313e" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={tick}
-              angle={-20}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis tick={tick} />
-            <Tooltip contentStyle={tooltipStyle} />
-            <Legend />
-            <Bar dataKey="baseline" name="Baseline RSS" fill="#70b6ff" />
-            <Bar
-              dataKey="retained"
-              name="Retained RSS delta (estimate)"
-              fill="#a9e787"
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </Chart>
-    </div>
-  );
-}
+import { BenchmarkCharts } from "../components/BenchmarkCharts";
+import { engineColor } from "../components/chartTheme";
+import type { CSSProperties } from "react";
 export function Benchmarks() {
   const runs = useResource<RunList>("/benchmarks/runs"),
     [params, setParams] = useSearchParams(),
@@ -272,16 +51,14 @@ export function Benchmarks() {
   };
   return (
     <>
-      <div className="eyebrow">EVIDENCE, NOT ASSUMPTIONS / 04</div>
       <div className="page-title">
         <div>
           <h1>Benchmark dashboard</h1>
           <p>
-            Compare retrieval quality and cost on one measured workload at a
-            time.
+            Compare latency, throughput, and retrieval quality for a measured
+            workload.
           </p>
         </div>
-        <Badge good>PHASE 3 REPORTS</Badge>
       </div>
       <ErrorBox message={runs.error || details.error} />
       {!!runs.data?.issues.length && (
@@ -381,15 +158,35 @@ export function Benchmarks() {
         <>
           <div className="report-heading">
             <span className="mono">
-              {details.data.run.size.toLocaleString()} VECTORS /{" "}
-              {details.data.run.dimension} DIMENSIONS /{" "}
-              {details.data.run.metric.toUpperCase()}
+              {details.data.run.size.toLocaleString()} vectors /{" "}
+              {details.data.run.dimension} dimensions /{" "}
+              {details.data.run.metric}
             </span>
             <Badge good={details.data.run.complete}>
               {details.data.run.source} ·{" "}
               {details.data.run.complete ? "Complete" : "Contains failures"}
             </Badge>
           </div>
+          <dl className="report-config" aria-label="Report configuration">
+            <div>
+              <dt>Distribution</dt>
+              <dd>{details.data.run.distribution}</dd>
+            </div>
+            <div>
+              <dt>Recorded</dt>
+              <dd>{new Date(details.data.run.timestamp).toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>Configurations shown</dt>
+              <dd>
+                {rows.length} / {details.data.results.length}
+              </dd>
+            </div>
+            <div>
+              <dt>Report</dt>
+              <dd className="mono">{details.data.run.name}</dd>
+            </div>
+          </dl>
           {rows.some((r) => r.status === "ok") ? (
             <BenchmarkCharts rows={rows} />
           ) : (
@@ -398,26 +195,41 @@ export function Benchmarks() {
           <section className="panel detail">
             <div className="panel-heading">
               <h2>Measured results</h2>
-              <Badge>{rows.length} CONFIGURATIONS</Badge>
+              <Badge>{rows.length} configurations</Badge>
             </div>
-            <div className="table-scroll">
-              <table>
+            <div
+              className="table-scroll"
+              role="region"
+              aria-label="Benchmark results table"
+              tabIndex={0}
+            >
+              <table aria-label="Measured benchmark results">
                 <thead>
                   <tr>
                     <th>Engine / probes</th>
-                    <th>Mean ms</th>
-                    <th>p50</th>
-                    <th>p95</th>
-                    <th>p99</th>
-                    <th>QPS</th>
-                    <th>Recall@k</th>
+                    <th className="numeric">Mean (ms)</th>
+                    <th className="numeric">p50 (ms)</th>
+                    <th className="numeric">p95 (ms)</th>
+                    <th className="numeric">p99 (ms)</th>
+                    <th className="numeric">QPS</th>
+                    <th className="numeric">Recall@k</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.engine + ":" + r.nprobe}>
                       <td>
-                        {engineName(r.engine)}{" "}
+                        <span
+                          className="engine-label"
+                          style={
+                            {
+                              "--engine-color": engineColor(r.engine),
+                            } as CSSProperties
+                          }
+                        >
+                          <i aria-hidden="true" />
+                          {engineName(r.engine)}
+                        </span>{" "}
                         {r.nprobe !== null &&
                           `/ ${r.nprobe}${r.full_probe_direct_path ? "*" : ""}`}
                         <small>{r.precision}</small>
@@ -431,7 +243,7 @@ export function Benchmarks() {
                         r.qps,
                         r.recall_at_k,
                       ].map((v, i) => (
-                        <td key={i} className={i === 5 ? "score" : ""}>
+                        <td key={i} className="numeric">
                           {v === null ? "N/A" : v.toFixed(i === 4 ? 1 : 3)}
                         </td>
                       ))}

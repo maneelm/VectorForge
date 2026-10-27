@@ -21,11 +21,17 @@ export function Empty({ children }: { children: ReactNode }) {
 export function Badge({
   children,
   good = false,
+  tone,
 }: {
   children: ReactNode;
   good?: boolean;
+  tone?: "neutral" | "success" | "warning" | "error";
 }) {
-  return <span className={`badge ${good ? "good" : ""}`}>{children}</span>;
+  return (
+    <span className={`badge ${tone ?? (good ? "success" : "neutral")}`}>
+      {children}
+    </span>
+  );
 }
 export function Field({
   label,
@@ -57,7 +63,13 @@ export function useAction() {
         await fn();
         setSuccess(message);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Operation failed.");
+        setError(
+          e instanceof SyntaxError
+            ? "Invalid JSON. Check brackets, commas, and quoted vector IDs."
+            : e instanceof Error
+              ? e.message
+              : "Operation failed.",
+        );
       } finally {
         setBusy(false);
       }
@@ -68,6 +80,12 @@ export function Feedback({ action }: { action: ReturnType<typeof useAction> }) {
   return (
     <>
       <ErrorBox message={action.error} />
+      {action.busy && (
+        <div className="notice pending" role="status">
+          <LoaderCircle size={16} className="spin" />
+          Working…
+        </div>
+      )}
       {action.success && (
         <div className="notice success" role="status">
           <CheckCircle2 size={16} />

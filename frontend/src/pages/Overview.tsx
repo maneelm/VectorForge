@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Database, GitBranch, Search } from "lucide-react";
+import { ArrowRight, Database, GitBranch } from "lucide-react";
 import { useResource } from "../hooks/useResource";
 import type { IndexInfo, RunList } from "../types";
 import { Badge, Empty, ErrorBox, Loading } from "../components/UI";
@@ -9,14 +9,10 @@ export function Overview() {
   const data = indexes.data;
   return (
     <>
-      <div className="eyebrow">SEARCH INFRASTRUCTURE / 01</div>
       <div className="page-title">
         <div>
-          <h1>Your search laboratory.</h1>
-          <p>
-            Build an index, explore its neighbors, and put performance to the
-            test.
-          </p>
+          <h1>Overview</h1>
+          <p>Active indexes and measured benchmark reports.</p>
         </div>
         <Link className="button primary" to="/indexes">
           Create an index <ArrowRight size={16} />
@@ -34,13 +30,22 @@ export function Overview() {
                 "Stored vectors",
                 data.reduce((s, i) => s + i.size, 0).toLocaleString(),
               ],
-              ["Exact indexes", data.filter((i) => i.type === "exact").length],
-              ["IVF indexes", data.filter((i) => i.type === "ivf").length],
+              [
+                "Exact / IVF indexes",
+                `${data.filter((i) => i.type === "exact").length} / ${data.filter((i) => i.type === "ivf").length}`,
+              ],
+              [
+                "Benchmark reports",
+                runs.data
+                  ? runs.data.runs.length
+                  : runs.error
+                    ? "Unavailable"
+                    : "Loading...",
+              ],
             ].map(([label, value]) => (
               <div className="stat" key={label}>
                 <span>{label}</span>
                 <strong>{value}</strong>
-                <small>LIVE WORKSPACE</small>
               </div>
             ))}
           </div>
@@ -54,10 +59,14 @@ export function Overview() {
               Manage <ArrowRight size={14} />
             </Link>
           </div>
-          {!data?.length ? (
+          {indexes.loading ? (
+            <Loading />
+          ) : indexes.error ? (
+            <Empty>Active indexes could not be loaded.</Empty>
+          ) : !data?.length ? (
             <Empty>
               <Database size={28} />
-              <h3>Start with your first index</h3>
+              <h3>No active indexes</h3>
               <p>
                 Create an Exact index for a baseline, or train IVF to explore
                 approximate search.
@@ -93,56 +102,56 @@ export function Overview() {
         <section className="panel">
           <div className="panel-heading">
             <h2>Recent benchmark runs</h2>
-            <Badge>MEASURED DATA</Badge>
+            <Link to="/runner">
+              Run benchmark <ArrowRight size={14} />
+            </Link>
           </div>
           {runs.loading ? (
             <Loading />
+          ) : runs.error ? (
+            <Empty>Benchmark reports could not be loaded.</Empty>
           ) : !runs.data?.runs.length ? (
             <Empty>
               No saved runs yet. Start a bounded benchmark from the runner.
             </Empty>
           ) : (
             <div className="list">
-              {runs.data.runs.slice(0, 4).map((r) => (
-                <Link
-                  className="list-row"
-                  to={`/benchmarks?run=${r.id}`}
-                  key={r.id}
-                >
-                  <div className="list-icon">
-                    <GitBranch size={18} />
-                  </div>
-                  <div>
-                    <strong>
-                      {r.size.toLocaleString()} vectors / {r.dimension}d
-                    </strong>
-                    <small>
-                      {r.metric} · {r.source} ·{" "}
-                      {new Date(r.timestamp).toLocaleDateString()}
-                    </small>
-                  </div>
-                  <Badge good={r.complete}>
-                    {r.complete ? "Complete" : "Has failures"}
-                  </Badge>
-                </Link>
-              ))}
+              {[...runs.data.runs]
+                .sort(
+                  (a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp),
+                )
+                .slice(0, 4)
+                .map((r) => (
+                  <Link
+                    className="list-row"
+                    to={`/benchmarks?run=${r.id}`}
+                    key={r.id}
+                  >
+                    <div className="list-icon">
+                      <GitBranch size={18} />
+                    </div>
+                    <div>
+                      <strong>
+                        {r.size.toLocaleString()} vectors / {r.dimension}d
+                      </strong>
+                      <small>
+                        {r.metric} · {r.source} ·{" "}
+                        {new Date(r.timestamp).toLocaleDateString()}
+                      </small>
+                    </div>
+                    <Badge good={r.complete}>
+                      {r.complete ? "Complete" : "Has failures"}
+                    </Badge>
+                  </Link>
+                ))}
             </div>
           )}
         </section>
       </div>
-      <section className="callout">
-        <Search size={26} />
-        <div>
-          <h2>Find what’s nearby.</h2>
-          <p>
-            Search your own vectors with cosine, Euclidean distance, or dot
-            product.
-          </p>
-        </div>
-        <Link className="button" to="/workspace">
-          Open vector workspace <ArrowRight size={16} />
-        </Link>
-      </section>
+      <p className="workspace-note">
+        Active indexes are held in memory. Save an archive in the index manager
+        before restarting.
+      </p>
     </>
   );
 }

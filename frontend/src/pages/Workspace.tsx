@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Search, Upload, Trash2 } from "lucide-react";
 import { parseVectorInput, request } from "../api/client";
 import { useResource } from "../hooks/useResource";
@@ -10,6 +11,7 @@ import {
   ErrorBox,
   Feedback,
   Field,
+  Loading,
   useAction,
 } from "../components/UI";
 export function Workspace() {
@@ -32,45 +34,68 @@ export function Workspace() {
   }, [id, index?.configuration.nprobe]);
   return (
     <>
-      <div className="eyebrow">EXPLORE NEIGHBORHOODS / 03</div>
       <div className="page-title">
         <div>
           <h1>Vector workspace</h1>
-          <p>
-            Insert real vectors. Ask a question. Inspect every returned score.
-          </p>
+          <p>Insert vector batches and search with a single query vector.</p>
         </div>
-        <Badge good={!!index?.is_trained}>
-          {index?.status ?? "SELECT AN INDEX"}
+        <Badge
+          tone={index ? (index.is_trained ? "success" : "warning") : "neutral"}
+        >
+          {index?.status ?? "No index selected"}
         </Badge>
       </div>
       <ErrorBox message={indexes.error} />
       <Feedback action={action} />
-      <div className="panel selector">
-        <Field label="Active index">
-          <select
-            value={id}
-            onChange={(e) => setParams({ index: e.target.value })}
-          >
-            <option value="">Select an index</option>
-            {indexes.data?.map((i) => (
-              <option key={i.id} value={i.id}>
-                {i.name} · {i.dimension}d · {i.metric}
-              </option>
-            ))}
-          </select>
-        </Field>
-        {index && (
-          <div className="selector-info">
-            <strong>{index.size.toLocaleString()} vectors</strong>
-            <span>
-              {index.type.toUpperCase()} · {index.dimension} dimensions
-            </span>
+      {!!indexes.data?.length && (
+        <div className="panel selector">
+          <Field label="Active index">
+            <select
+              value={id}
+              onChange={(e) => setParams({ index: e.target.value })}
+            >
+              <option value="">Select an index</option>
+              {indexes.data?.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name} · {i.dimension}d · {i.metric}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {index && (
+            <div className="selector-info">
+              <strong>{index.size.toLocaleString()} vectors</strong>
+              <span>
+                {index.type.toUpperCase()} · {index.dimension} dimensions
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      {indexes.loading && !indexes.data ? (
+        <Loading />
+      ) : !index ? (
+        <section className="panel workspace-empty" aria-label="Workspace setup">
+          <div>
+            <h2>
+              {indexes.error
+                ? "Indexes unavailable"
+                : indexes.data?.length
+                  ? "Select an active index"
+                  : "No active indexes"}
+            </h2>
+            <p>
+              {indexes.error
+                ? "Check the API connection, then reload this page."
+                : indexes.data?.length
+                  ? "Choose an index above to insert vectors or run a search."
+                  : "Create an index or load a saved archive to insert vectors and run searches."}
+            </p>
           </div>
-        )}
-      </div>
-      {!index ? (
-        <Empty>Create and select an index in the index manager to begin.</Empty>
+          <Link className="button primary" to="/indexes">
+            Open index manager
+          </Link>
+        </section>
       ) : (
         <>
           <p className="hint">
@@ -100,6 +125,11 @@ export function Workspace() {
                   }, "Vectors inserted.");
                 }}
               >
+                <p className="hint" id="insert-help">
+                  Batch input: a matrix with {index.dimension} numbers per
+                  vector and one unique ID per row. Quote decimal IDs to retain
+                  int64 precision.
+                </p>
                 <Field label="Vectors and IDs (JSON)">
                   <textarea
                     rows={8}
@@ -107,6 +137,7 @@ export function Workspace() {
                     onChange={(e) => setPayload(e.target.value)}
                     required
                     spellCheck={false}
+                    aria-describedby="insert-help"
                   />
                 </Field>
                 <button
@@ -168,8 +199,14 @@ export function Workspace() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     required
+                    spellCheck={false}
+                    aria-describedby="query-help"
                   />
                 </Field>
+                <p className="hint" id="query-help">
+                  Single query: one JSON array containing {index.dimension}{" "}
+                  numbers. k sets the maximum number of neighbors returned.
+                </p>
                 <div className="form-row">
                   <Field label="Neighbors (k)">
                     <input
@@ -225,8 +262,13 @@ export function Workspace() {
                   lists can produce no matches.
                 </Empty>
               ) : (
-                <div className="table-scroll">
-                  <table>
+                <div
+                  className="table-scroll"
+                  role="region"
+                  aria-label="Search results table"
+                  tabIndex={0}
+                >
+                  <table aria-label="Nearest neighbor search results">
                     <thead>
                       <tr>
                         <th>Rank</th>
@@ -265,6 +307,12 @@ export function Workspace() {
               className="form inline-form"
               onSubmit={(e) => {
                 e.preventDefault();
+                if (
+                  !confirm(
+                    `Delete these vector IDs from “${index.name}”? This cannot be undone for the active index. Saved archives are unchanged.`,
+                  )
+                )
+                  return;
                 void action.run(async () => {
                   await request(
                     `/indexes/${id}/vectors`,
@@ -285,7 +333,7 @@ export function Workspace() {
                   required
                 />
               </Field>
-              <button className="button" disabled={action.busy}>
+              <button className="button destructive" disabled={action.busy}>
                 Delete IDs
               </button>
             </form>

@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi } from "vitest";
 import { Indexes } from "../pages/Indexes";
 import { Workspace } from "../pages/Workspace";
-import { BenchmarkCharts } from "../pages/Benchmarks";
+import { BenchmarkCharts } from "../components/BenchmarkCharts";
 import * as client from "../api/client";
 const index = {
   id: "test",

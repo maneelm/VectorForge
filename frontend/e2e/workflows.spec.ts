@@ -23,6 +23,10 @@ test("Exact UI: create, insert, search, delete IDs, save, load", async ({
   await expect(
     page.getByRole("cell", { name: "1.00000000", exact: true }),
   ).toBeVisible();
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("Delete these vector IDs");
+    await dialog.accept();
+  });
   await page.getByRole("button", { name: "Delete IDs", exact: true }).click();
   await expect(page.getByText("2 vectors", { exact: true })).toBeVisible();
   await page.goto("/indexes");

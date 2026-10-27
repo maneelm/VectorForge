@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FlaskConical, Play, ArrowUpRight } from "lucide-react";
+import { FlaskConical, Play, ArrowUpRight, LoaderCircle } from "lucide-react";
 import { request } from "../api/client";
 import { useResource } from "../hooks/useResource";
 import type { Health, Job, Metric } from "../types";
@@ -10,6 +10,7 @@ import {
   ErrorBox,
   Feedback,
   Field,
+  Loading,
   useAction,
 } from "../components/UI";
 export function Runner() {
@@ -25,15 +26,11 @@ export function Runner() {
   const preset = health.data?.benchmark_preset;
   return (
     <>
-      <div className="eyebrow">REPRODUCIBLE EXPERIMENTS / 05</div>
       <div className="page-title">
         <div>
           <h1>Benchmark runner</h1>
-          <p>
-            A bounded experiment. Four engines. The same vectors and queries.
-          </p>
+          <p>Compare four engines on the same reproducible workload.</p>
         </div>
-        <Badge>QUICK WORKLOAD</Badge>
       </div>
       <ErrorBox message={health.error || jobs.error} />
       <Feedback action={action} />
@@ -41,12 +38,13 @@ export function Runner() {
         <section className="panel">
           <div className="panel-heading">
             <h2>Quick comparison</h2>
-            <FlaskConical size={19} />
+            <Badge>Quick preset</Badge>
           </div>
           <div className="form">
             <p>
-              Runs the existing Phase 3 CLI in an isolated process. Reports
-              remain available after restart.
+              Fixed, bounded workload across VectorForge Exact, VectorForge IVF,
+              FAISS Flat, and FAISS IVF. Generated reports persist after
+              restart.
             </p>
             {preset && (
               <dl className="preset-grid">
@@ -130,12 +128,14 @@ export function Runner() {
         <section className="panel">
           <div className="panel-heading">
             <h2>Job activity</h2>
-            <Badge>LIVE STATUS</Badge>
+            <span className="muted">Updates every 1.5 s</span>
           </div>
-          {!jobs.data?.length ? (
+          {jobs.loading && !jobs.data ? (
+            <Loading />
+          ) : !jobs.data?.length ? (
             <Empty>
               <FlaskConical size={27} />
-              <h3>No experiments yet</h3>
+              <h3>No benchmark jobs</h3>
               <p>Start a quick benchmark, or explore the published reports.</p>
               <Link className="button" to="/benchmarks">
                 View saved benchmarks
@@ -146,9 +146,33 @@ export function Runner() {
               <article className="job" key={j.id}>
                 <div className="panel-heading">
                   <strong>{new Date(j.created_at).toLocaleTimeString()}</strong>
-                  <Badge good={j.status === "completed"}>{j.status}</Badge>
+                  <Badge
+                    tone={
+                      j.status === "completed"
+                        ? "success"
+                        : j.status === "failed"
+                          ? "error"
+                          : "warning"
+                    }
+                  >
+                    {j.status}
+                  </Badge>
                 </div>
                 <small className="mono">{j.id}</small>
+                {(j.status === "running" || j.status === "queued") && (
+                  <p className="job-progress" role="status">
+                    <LoaderCircle size={14} className="spin" />
+                    {j.status === "queued"
+                      ? "Waiting for an available worker."
+                      : "Benchmark in progress. Results appear when all configurations finish."}
+                  </p>
+                )}
+                {j.status === "completed" && (
+                  <p className="job-progress">
+                    Completed · {j.run_ids.length}{" "}
+                    {j.run_ids.length === 1 ? "report" : "reports"} available
+                  </p>
+                )}
                 {j.error && <ErrorBox message={j.error} />}
                 <div className="button-row">
                   {j.run_ids.map((id) => (
