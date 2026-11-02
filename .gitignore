@@ -22,3 +22,5 @@ frontend/playwright-report/
 secrets/
 .secrets/
 *.htpasswd
+desktop.ini
+Thumbs.db

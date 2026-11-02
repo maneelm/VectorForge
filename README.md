@@ -188,6 +188,17 @@ The runner uses 1,000 vectors at 32 dimensions with probes 1/4/16. Browser vecto
 IDs are decimal strings to preserve the signed int64 range. Workspace API latency
 and benchmark latency have different measurement scopes.
 
+## Dashboard Preview
+
+### Benchmark Dashboard
+![Benchmark Dashboard](docs/screenshots/benchmark-dashboard.png)
+
+### Index Manager
+![Index Manager](docs/screenshots/index-manager.png)
+
+### Vector Workspace
+![Vector Workspace](docs/screenshots/vector-workspace.png)
+
 ## Development and Testing
 
 Use Python 3.12, uv, and Node.js 24 with npm to match the CI/container versions.
