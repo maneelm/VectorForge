@@ -45,7 +45,7 @@ uv run --extra benchmark python -m vectorforge.benchmarks.cli --plot results/qui
 uv run --extra benchmark python examples/benchmark_demo.py
 ```
 
-Standard and full performance grids were not run; their configuration grids were validated in tests. No Phase 3 acceptance criterion was blocked. Phase 4-5 functionality is not implemented.
+Standard and full performance grids were not run; their configuration grids were validated in tests. No Phase 3 acceptance criterion was blocked. The commands and test counts above are historical Phase 3 validation records, before the API, dashboard, Docker, and CI phases. See the current [README](../README.md) for the complete application and current validation commands.
 
 ## New and modified files
 

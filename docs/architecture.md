@@ -193,4 +193,7 @@ malformed archives, incompatible overwrites, and simulated write failures.
 Both examples are executable integration checks. Pytest and Ruff checks are the
 acceptance gates for Phases 1–3. The optional benchmark demo and integration tests
 also check FAISS and generated artifacts. API tests and frontend component/browser
-tests cover the web adapter. Phase 5 deployment infrastructure is not included.
+tests cover the web adapter. Deployment configuration and proxy startup-policy
+tests cover the container boundary; the Docker CI job exercises the real stack,
+including archive/report persistence and authentication. The
+[deployment guide](phase5_deployment.md) describes those checks and their scope.
