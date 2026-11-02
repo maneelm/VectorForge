@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from contextlib import nullcontext
 from types import SimpleNamespace
 
@@ -71,7 +73,8 @@ def fake_subprocess(monkeypatch, *, fail_engine=None, corrupt_hash=False):
         runner.Path(result_path).write_text(json.dumps(result), encoding="utf-8")
         return SimpleNamespace(returncode=0, stderr="", stdout="")
 
-    monkeypatch.setattr(runner.subprocess, "run", execute)
+    # Keep platform.processor() and other stdlib subprocess users outside this mock.
+    monkeypatch.setattr(runner, "subprocess", SimpleNamespace(run=execute))
     return seen
 
 
@@ -111,6 +114,23 @@ def test_dataset_mismatch_is_explicit_failure(monkeypatch):
     )
     assert not run.complete
     assert "fingerprint mismatch" in run.rows[0]["error"]
+
+
+def test_processor_subprocess_is_not_intercepted_as_worker(monkeypatch):
+    def processor():
+        # Linux discovers the processor via a subprocess; exercise that path on Windows too.
+        return subprocess.check_output(
+            [sys.executable, "-c", "print('test CPU')"], text=True
+        ).strip()
+
+    monkeypatch.setattr(runner.platform, "processor", processor)
+    seen = fake_subprocess(monkeypatch)
+    run = runner.run_benchmark(
+        BenchmarkConfig(size=10, query_count=2, engines=("vectorforge_exact",))
+    )
+    assert run.complete, run.rows
+    assert run.metadata["cpu"] == "test CPU"
+    assert [engine for engine, _, _ in seen] == ["vectorforge_exact"]
 
 
 def test_native_worker_exit_is_reported(monkeypatch):
